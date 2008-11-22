@@ -1,1 +1,3 @@
 CACHE_DIR = '/tmp/foxx.cache/'
+CACHE_TIMEOUT = 60 * 15
+CACHE_STABLE_TIMEOUT = 60 * 60 * 24 * 7 * 2

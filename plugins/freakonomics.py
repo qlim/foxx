@@ -1,5 +1,6 @@
 from django.utils import feedgenerator
 from foxx.agent import Agent
+from foxx.cache import DefaultCache as cache
 from xml.dom import minidom
 from lxml import etree
 from BeautifulSoup import BeautifulSoup
@@ -24,7 +25,7 @@ class FreakonomicsParser(object):
         return self.agent.fetch(self.URL)
 
     def parse(self):
-        tree = etree.parse(self.fetch_url(), base_url=self.URL)
+        tree = etree.fromstring(self.fetch_url(), base_url=self.URL)
 
         self.f = feedgenerator.Atom1Feed(
             title=s(tree.xpath('/rss/channel/title/text()')),
@@ -38,14 +39,6 @@ class FreakonomicsParser(object):
         return self.f
 
     def parse_item(self, item):
-        """
-        Return a dictionary matching kwargs of feedparser.SyndicationFeed.add_item
-
-        def add_item(self, title, link, description, author_email=None,
-        author_name=None, author_link=None, pubdate=None, comments=None,
-        unique_id=None, enclosure=None, categories=(), item_copyright=None,
-        ttl=None, **kwargs):
-        """
         n = {'feedburner':'http://rssnamespace.org/feedburner/ext/1.0',
              'dc': 'http://purl.org/dc/elements/1.1/'}
 
@@ -55,35 +48,33 @@ class FreakonomicsParser(object):
         author_name = s(item.xpath('dc:creator/text()', namespaces=n))
         categories = item.xpath('category/text()')
 
-        soup = BeautifulSoup(self.agent.fetch(link))
-        div = soup.find('div', {'class': 'entry-content'})
-        description = div.prettify()
+        if cache.has(link+"#description", dynamic=False):
+            description = cache.get(link+"#description")
+        else:
+            soup = BeautifulSoup(self.agent.fetch(link))
+            div = soup.find('div', {'class': 'entry-content'})
+            description = div.prettify()
+            cache.set(link+"#description", description)
 
         self.f.add_item(title, link, description, author_name=author_name,
             pubdate=pubdate, categories=categories)
 
-if __name__ == '__main__':
+def main():
     fp = FreakonomicsParser()
     feed = fp.parse()
-    print feed.writeString('UTF-8')
+    #print feed.writeString('UTF-8')
 
+def prof():
+    import hotshot
+    prof = hotshot.Profile('hp')
+    prof.runcall(main)
+    prof.close()
 
+    from hotshot import stats
+    s = stats.load('hp')
+    print s.sort_stats('time').print_stats()
 
+if __name__ == '__main__':
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    #prof()
+    main()
