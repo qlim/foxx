@@ -1,19 +1,12 @@
 from django.utils import feedgenerator
 from foxx.agent import Agent
 from foxx.cache import DefaultCache as cache
+from foxx.utils import convert_date
 from xml.dom import minidom
 from lxml import etree
 from BeautifulSoup import BeautifulSoup
-from datetime import datetime
-import email, time, pytz
 
 s = lambda x: ''.join(x)
-
-def convert_date(d):
-    utctimestamp = email.Utils.mktime_tz(email.Utils.parsedate_tz(d))
-    utcdate = datetime.fromtimestamp(utctimestamp, pytz.utc)
-    return utcdate
-
 
 class FreakonomicsParser(object):
     URL = u"http://feedproxy.google.com/freakonomicsblog"
@@ -62,19 +55,7 @@ class FreakonomicsParser(object):
 def main():
     fp = FreakonomicsParser()
     feed = fp.parse()
-    #print feed.writeString('UTF-8')
-
-def prof():
-    import hotshot
-    prof = hotshot.Profile('hp')
-    prof.runcall(main)
-    prof.close()
-
-    from hotshot import stats
-    s = stats.load('hp')
-    print s.sort_stats('time').print_stats()
+    print feed.writeString('UTF-8')
 
 if __name__ == '__main__':
-
-    #prof()
     main()
